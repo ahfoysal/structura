@@ -274,18 +274,7 @@ export function HierarchyWorkspace({
     }
   }, [isResizing])
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin">
-            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-          <p className="text-muted-foreground">Loading workspace...</p>
-        </div>
-      </div>
-    )
-  }
+
 
   const breadcrumbItems = breadcrumbPath.map((item, index) => ({
     label: item.name,
@@ -299,6 +288,19 @@ export function HierarchyWorkspace({
         : undefined,
     isActive: index === breadcrumbPath.length - 1,
   }))
+
+  if (!user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin">
+            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+          <p className="text-muted-foreground">Loading user...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -404,7 +406,16 @@ export function HierarchyWorkspace({
             </Button>
           )}
 
-          {selectedTier ? (
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin">
+                  <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+                </div>
+                <p className="text-muted-foreground">Loading workspace...</p>
+              </div>
+            </div>
+          ) : selectedTier ? (
             <>
               {user.is_admin && (
                 <div className="mb-6 p-4 bg-card border border-border rounded-lg space-y-3">

@@ -22,18 +22,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ORDER BY level, created_at
     `
 
-    const tiersWithData = await Promise.all(
-      tiers.map(async (tier: any) => {
-        const tierData = await sql`
-          SELECT field_id, value, text_value FROM tier_data
-          WHERE tier_id = ${tier.id}
-        `
-        return {
-          ...tier,
-          data: tierData || [],
-        }
-      }),
-    )
+    // Fetch ALL tier data in a single query instead of one query per tier
+    const tierIds = tiers.map((t: any) => t.id)
+    
+    let allTierData: any[] = []
+    if (tierIds.length > 0) {
+      allTierData = await sql`
+        SELECT tier_id, field_id, value, text_value FROM tier_data
+        WHERE tier_id = ANY(${tierIds})
+      `
+    }
+
+    // Group tier data by tier_id in memory
+    const tierDataMap: Record<string, any[]> = {}
+    for (const data of allTierData) {
+      if (!tierDataMap[data.tier_id]) {
+        tierDataMap[data.tier_id] = []
+      }
+      tierDataMap[data.tier_id].push({
+        field_id: data.field_id,
+        value: data.value,
+        text_value: data.text_value,
+      })
+    }
+
+    // Map tiers with their data
+    const tiersWithData = tiers.map((tier: any) => ({
+      ...tier,
+      data: tierDataMap[tier.id] || [],
+    }))
 
     return NextResponse.json({ tiers: tiersWithData })
   } catch (error) {

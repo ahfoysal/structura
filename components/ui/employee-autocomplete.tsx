@@ -1,16 +1,10 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-
-interface Employee {
-  id: string
-  employee_id: string
-  full_name: string
-}
+import { useEmployees, type Employee } from "@/contexts/employees-context"
 
 interface EmployeeAutocompleteProps {
   value: string
@@ -21,16 +15,9 @@ interface EmployeeAutocompleteProps {
 
 export function EmployeeAutocomplete({ value, onChange, placeholder, disabled }: EmployeeAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
-  const [loading, setLoading] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
-
-  // Load all employees on mount
-  useEffect(() => {
-    loadEmployees()
-  }, [])
+  const { employees, loading } = useEmployees()
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -43,34 +30,18 @@ export function EmployeeAutocomplete({ value, onChange, placeholder, disabled }:
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Filter employees when search term changes
-  useEffect(() => {
+  // Filter employees when search term changes - using useMemo for performance
+  const filteredEmployees = useMemo(() => {
     if (searchTerm.trim() === "") {
-      setFilteredEmployees(employees.slice(0, 50)) // Show first 50 employees
-    } else {
-      const filtered = employees.filter(
-        (emp) =>
-          (emp.employee_id && emp.employee_id.includes(searchTerm)) ||
-          (emp.full_name && emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())),
-      )
-      setFilteredEmployees(filtered.slice(0, 50)) // Limit to 50 results
+      return employees.slice(0, 50) // Show first 50 employees
     }
+    const filtered = employees.filter(
+      (emp) =>
+        (emp.employee_id && emp.employee_id.includes(searchTerm)) ||
+        (emp.full_name && emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())),
+    )
+    return filtered.slice(0, 50) // Limit to 50 results
   }, [searchTerm, employees])
-
-  const loadEmployees = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch("/api/employees")
-      if (res.ok) {
-        const data = await res.json()
-        setEmployees(data.employees || [])
-      }
-    } catch (error) {
-      console.error("[v0] Load employees error:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSelect = (employee: Employee) => {
     const displayValue = `${employee.employee_id || ""} - ${employee.full_name || ""}`

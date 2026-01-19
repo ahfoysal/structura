@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "sonner"
 import "./globals.css"
 import { LoadingProvider } from "@/contexts/loading-context"
+import { EmployeesProvider } from "@/contexts/employees-context"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -41,8 +42,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <LoadingProvider>
-          {children}
-          <Toaster position="top-right" />
+          <EmployeesProvider>
+            {children}
+            <Toaster position="top-right" />
+          </EmployeesProvider>
         </LoadingProvider>
         <Analytics />
       </body>

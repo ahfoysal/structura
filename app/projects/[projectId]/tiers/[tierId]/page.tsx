@@ -48,9 +48,7 @@ export default function TierPage({
   }, [])
 
   const handleBack = () => {
-    if (projectId) {
-      router.push(`/projects/${projectId}`)
-    }
+    router.push("/")
   }
 
   const handleLogout = () => {
@@ -59,8 +57,17 @@ export default function TierPage({
     })
   }
 
-  if (loading || !projectId || !tierId) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (!projectId || !tierId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin">
+            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
