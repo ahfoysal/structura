@@ -1,0 +1,390 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  isAdmin         Boolean   @default(false) @map("is_admin")
+  isEmployee      Boolean   @default(false) @map("is_employee")
+  userRole        String    @default("employee") @map("user_role") @db.VarChar(50)
+  employeeId      String?   @unique @map("employee_id") @db.VarChar(50)
+  fullName        String?   @map("full_name") @db.VarChar(255)
+  phoneNumber     String?   @map("phone_number") @db.VarChar(20)
+  gitlabUsername  String?   @map("gitlab_username") @db.VarChar(255)
+  officialMail    String?   @map("official_mail") @db.VarChar(255)
+  role            String?   @db.VarChar(50)
+  teamId          String?   @map("team_id") @db.Uuid
+  shift           String?   @db.VarChar(20)
+  status          String?   @db.VarChar(20)
+  isProjectLead   Boolean   @default(false) @map("is_project_lead")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @default(now()) @map("updated_at")
+
+  team            Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  projects        Project[] @relation("CreatedProjects")
+  templates       FieldTemplate[]
+
+  @@index([teamId])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Team {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  users     User[]
+
+  @@map("teams")
+}
+
+model Project {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.VarChar(255)
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  creator   User?    @relation("CreatedProjects", fields: [createdBy], references: [id])
+  tiers     Tier[]
+
+  @@map("projects")
+}
+
+model Tier {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId            String     @map("project_id") @db.Uuid
+  parentId             String?    @map("parent_id") @db.Uuid
+  name                 String     @db.VarChar(255)
+  level                Int        @default(0)
+  allowChildCreation   Boolean    @default(true) @map("allow_child_creation")
+  allowFieldManagement Boolean    @default(false) @map("allow_field_management")
+  tierColor            String?    @map("tier_color") @db.VarChar
+  displayOrder         Int        @default(0) @map("display_order")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @default(now()) @map("updated_at")
+  project              Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent               Tier?      @relation("TierChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children             Tier[]     @relation("TierChildren")
+  fields               TierField[]
+  data                 TierData[]
+
+  @@unique([parentId, name])
+  @@index([projectId])
+  @@index([parentId])
+  @@index([parentId, displayOrder])
+  @@map("tiers")
+}
+
+model TierField {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tierId       String     @map("tier_id") @db.Uuid
+  fieldName    String     @map("field_name") @db.VarChar(255)
+  fieldType    String     @default("string") @map("field_type") @db.VarChar(50)
+  fieldOptions String?    @map("field_options")
+  displayOrder Int        @map("display_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @default(now()) @map("updated_at")
+  tier         Tier       @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  data         TierData[]
+
+  @@unique([tierId, fieldName])
+  @@index([tierId])
+  @@map("tier_fields")
+}
+
+model TierData {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tierId    String    @map("tier_id") @db.Uuid
+  fieldId   String    @map("field_id") @db.Uuid
+  value     Decimal?  @db.Decimal
+  textValue String?   @map("text_value")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @map("updated_at")
+  tier      Tier      @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  field     TierField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([tierId, fieldId])
+  @@index([tierId])
+  @@index([fieldId])
+  @@map("tier_data")
+}
+
+model FieldTemplate {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String          @db.VarChar(255)
+  description String?
+  createdBy   String?         @map("created_by") @db.Uuid
+  isSystem    Boolean         @default(false) @map("is_system")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @default(now()) @map("updated_at")
+  creator     User?           @relation(fields: [createdBy], references: [id])
+  fields      TemplateField[]
+
+  @@index([createdBy])
+  @@index([isSystem])
+  @@map("field_templates")
+}
+
+model TemplateField {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId   String        @map("template_id") @db.Uuid
+  fieldName    String        @map("field_name") @db.VarChar(255)
+  fieldType    String        @default("string") @map("field_type") @db.VarChar(50)
+  fieldOptions String?       @map("field_options")
+  displayOrder Int?          @map("display_order")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  template     FieldTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@map("template_fields")
+}
+
+model Role {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("roles")
+}
+
+model Shift {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("shifts")
+}
+
+model Status {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("statuses")
+}
+
+model Workspace {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(255)
+  description String?
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  models      DataModel[]
+
+  @@index([createdBy])
+  @@map("workspaces")
+}
+
+model DataModel {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  nodeTypes   NodeType[]
+  nodes       Node[]
+  fields      DynamicField[]
+  relationTypes RelationType[]
+  views       ModelView[]
+
+  @@index([workspaceId])
+  @@map("data_models")
+}
+
+model NodeType {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modelId     String   @map("model_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  color       String?  @db.VarChar(32)
+  icon        String?  @db.VarChar(64)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  model       DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  nodes       Node[]
+  fields      DynamicField[]
+
+  @@unique([modelId, name])
+  @@index([modelId])
+  @@map("node_types")
+}
+
+model Node {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modelId     String   @map("model_id") @db.Uuid
+  nodeTypeId  String?  @map("node_type_id") @db.Uuid
+  parentId    String?  @map("parent_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  path        String   @default("") @db.VarChar(2048)
+  depth       Int      @default(0)
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  model       DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  nodeType    NodeType? @relation(fields: [nodeTypeId], references: [id], onDelete: SetNull)
+  parent      Node?    @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Node[]   @relation("NodeChildren")
+  values      FieldValue[]
+  outgoingRelations NodeRelationship[] @relation("SourceNode")
+  incomingRelations NodeRelationship[] @relation("TargetNode")
+  calculationResults CalculationResult[]
+
+  @@index([modelId])
+  @@index([nodeTypeId])
+  @@index([parentId])
+  @@index([modelId, parentId, sortOrder])
+  @@map("nodes")
+}
+
+model DynamicField {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modelId         String   @map("model_id") @db.Uuid
+  nodeTypeId      String?  @map("node_type_id") @db.Uuid
+  name            String   @db.VarChar(255)
+  key             String   @db.VarChar(128)
+  fieldType       String   @default("text") @map("field_type") @db.VarChar(64)
+  behavior        String   @default("manual") @db.VarChar(64)
+  config          Json     @default("{}")
+  defaultValue    Json?    @map("default_value")
+  required        Boolean  @default(false)
+  hidden          Boolean  @default(false)
+  locked          Boolean  @default(false)
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @map("updated_at")
+
+  model           DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  nodeType        NodeType? @relation(fields: [nodeTypeId], references: [id], onDelete: Cascade)
+  values          FieldValue[]
+  formula         FormulaDefinition?
+  calculationResults CalculationResult[]
+
+  @@unique([modelId, key])
+  @@index([modelId])
+  @@index([nodeTypeId])
+  @@map("dynamic_fields")
+}
+
+model FieldValue {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nodeId      String   @map("node_id") @db.Uuid
+  fieldId     String   @map("field_id") @db.Uuid
+  value       Json
+  valueText   String?  @map("value_text")
+  valueNumber Decimal? @map("value_number") @db.Decimal
+  valueDate   DateTime? @map("value_date")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  node        Node         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  field       DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, fieldId])
+  @@index([nodeId])
+  @@index([fieldId])
+  @@map("field_values")
+}
+
+model RelationType {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modelId     String   @map("model_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  key         String   @db.VarChar(128)
+  cardinality String   @default("many_to_many") @db.VarChar(64)
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  model       DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  relationships NodeRelationship[]
+
+  @@unique([modelId, key])
+  @@index([modelId])
+  @@map("relation_types")
+}
+
+model NodeRelationship {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  relationTypeId String  @map("relation_type_id") @db.Uuid
+  sourceNodeId   String  @map("source_node_id") @db.Uuid
+  targetNodeId   String  @map("target_node_id") @db.Uuid
+  metadata        Json    @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @map("updated_at")
+
+  relationType    RelationType @relation(fields: [relationTypeId], references: [id], onDelete: Cascade)
+  sourceNode      Node @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode      Node @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([relationTypeId, sourceNodeId, targetNodeId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@map("node_relationships")
+}
+
+model FormulaDefinition {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fieldId     String   @unique @map("field_id") @db.Uuid
+  expression  String
+  compiled    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  field       DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@map("formula_definitions")
+}
+
+model CalculationResult {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nodeId      String   @map("node_id") @db.Uuid
+  fieldId     String   @map("field_id") @db.Uuid
+  value       Json?
+  valueText   String?  @map("value_text")
+  valueNumber Decimal? @map("value_number") @db.Decimal
+  status      String   @default("ok") @db.VarChar(64)
+  error       String?
+  trace       Json     @default("[]")
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  node        Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  field       DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, fieldId])
+  @@index([nodeId])
+  @@index([fieldId])
+  @@map("calculation_results")
+}
+
+model ModelView {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  modelId     String   @map("model_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  viewType    String   @default("tree") @map("view_type") @db.VarChar(64)
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  model       DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@map("model_views")
+}
