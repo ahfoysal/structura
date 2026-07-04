@@ -1,41 +1,58 @@
-# Universal Structure Builder
+# Structura
 
-Universal Structure Builder is a modern workspace builder for modeling any real-world system: teams, projects, clients, inventory, budgets, schools, products, assets, or fully custom operations.
+Structura is a full-stack workspace builder for creating custom operational systems without hard-coding the shape of the data.
 
-Instead of forcing users to think in database language, the app uses simple product concepts:
+Use it to model teams, projects, clients, inventories, budgets, assets, roadmaps, schools, vendors, or any workflow that needs hierarchy, custom fields, relationships, and calculated values.
 
-- **Spaces** organize work.
-- **Boards** describe the system being built.
-- **Items** are the things inside a board.
-- **Fields** hold information about items.
-- **Connections** describe how items relate.
-- **Calculations** turn hierarchy and references into automatic results.
+## Why Structura
 
-Author: **ahfoysal**
+Most internal tools start simple, then break when the business model changes. A project becomes a program. A client gets linked to contracts, tickets, invoices, people, assets, and budgets. A spreadsheet grows formulas nobody wants to touch.
 
-Suggested folder name: `universal-structure-builder`
+Structura is built around flexible building blocks:
 
-## Stack
+- Create nested items for any hierarchy.
+- Add custom fields at runtime.
+- Connect items to other items.
+- Calculate values from parents, children, descendants, siblings, and references.
+- Keep the frontend clean enough for non-technical users.
 
-- Next.js frontend
-- NestJS backend
-- PostgreSQL database
-- Prisma migrations/client
-- Docker Compose for local database
-- pnpm workspace
+## Current Experience
 
-## Main Features
+- Modern builder interface with a focused workspace, left navigation, and contextual inspector.
+- Global `+ Add` menu for adding spaces, boards, items, fields, connections, and calculations.
+- Editable fields with type, behavior, formula, and delete controls.
+- Parent/child item tree with drag-and-drop movement.
+- Bidirectional references between items.
+- Dedicated views for workspace, fields, connections, calculations, and settings.
+- Visual calculation builder with generated formulas and examples.
+- Backend validation for references, duplicate fields, and calculation updates.
 
-- Modern builder UI with left navigation, central workspace, and contextual inspector
-- Global `+ Add` menu for spaces, boards, items, fields, connections, and calculations
-- Editable/removable fields with type and behavior controls
-- Parent/child hierarchy with drag-and-drop item movement
-- Bidirectional connections/references between items
-- Calculation builder and learning page
-- Rollups, lookups, formulas, and calculation traces
-- Dedicated pages for workspace, fields, connections, calculations, and settings
+## Tech Stack
 
-## Local Development
+- **Frontend:** Next.js, React, Tailwind CSS
+- **Backend:** NestJS
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **Local database:** Docker Compose
+- **Package manager:** pnpm
+
+## Project Structure
+
+```text
+.
+├── app/                         # Next.js frontend entry
+├── components/                  # UI and builder components
+├── backend/                     # NestJS API, Prisma schema, migrations
+│   ├── prisma/
+│   ├── src/
+│   └── scripts/
+├── docker-compose.yml           # Local PostgreSQL
+└── pnpm-workspace.yaml
+```
+
+Legacy Next.js API routes are preserved under `backend/legacy-next-api/` for reference while the app moves to the NestJS backend.
+
+## Getting Started
 
 Install dependencies:
 
@@ -49,14 +66,14 @@ Start PostgreSQL:
 pnpm db:up
 ```
 
-Configure environment files:
+Create local environment files:
 
 ```bash
 cp .env.example .env
 cp backend/.env.example backend/.env
 ```
 
-Run database migrations:
+Run migrations:
 
 ```bash
 pnpm --dir backend db:migrate
@@ -80,30 +97,39 @@ Open:
 http://localhost:3010
 ```
 
-## Verification
-
-Build frontend:
+## Useful Scripts
 
 ```bash
-pnpm build
-```
-
-Build backend:
-
-```bash
-pnpm --dir backend build
-```
-
-Run the universal model smoke test:
-
-```bash
+pnpm build                       # Build the Next.js frontend
+pnpm --dir backend build         # Build the NestJS backend
 pnpm --dir backend smoke:universal
+pnpm --dir backend db:migrate
+pnpm --dir backend db:studio
 ```
 
-## Project Notes
+## Formula Examples
 
-The frontend proxies `/api/*` requests to the NestJS backend through `next.config.mjs`.
+Structura supports calculated fields that can read values from the current item, the hierarchy, or connected items.
 
-Local PostgreSQL runs through Docker Compose on host port `55432`.
+```text
+self.amount
+parent.budget - self.cost
+sum(children.amount)
+avg(descendants.progress)
+sum(siblings.capacity)
+sum(related("Supplier").cost)
+lookup("Owner", "email")
+if(self.score > 80, "Healthy", "At risk")
+```
 
-Legacy Next.js API code has been moved under the backend legacy area so the Next app can stay focused on the frontend experience.
+## Local Ports
+
+```text
+Frontend: http://localhost:3010
+Backend:  http://localhost:3100
+Postgres: 127.0.0.1:55432
+```
+
+## Status
+
+Structura is an active product build. The current version focuses on the universal data model, modern builder UI, dynamic fields, references, hierarchy, and calculation engine.

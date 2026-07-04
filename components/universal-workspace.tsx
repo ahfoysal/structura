@@ -924,7 +924,7 @@ export function UniversalWorkspace() {
               <Database className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold">Structure Builder</h1>
+              <h1 className="truncate text-base font-semibold">Structura</h1>
               <p className="text-xs text-zinc-500">Build any system.</p>
             </div>
           </div>
@@ -1337,7 +1337,7 @@ function StartView({
       <div className="mb-8 max-w-2xl">
         <Badge variant="outline" className="mb-3 bg-white">
           <Sparkles className="h-3 w-3" />
-          Universal builder
+          Structura builder
         </Badge>
         <h2 className="text-4xl font-semibold tracking-tight">What are you building?</h2>
         <p className="mt-3 text-lg text-zinc-600">Start from a familiar system or create a blank board. You can change everything later.</p>
